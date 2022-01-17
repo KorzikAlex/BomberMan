@@ -58,8 +58,8 @@ class Board:
             for j in range(self.width):
                 if self.board[i][j] == 0:
                     pygame.draw.rect(screen, "skyblue", (self.left + (self.cell_size * i),
-                                                       self.top + (self.cell_size * j),
-                                                       self.cell_size, self.cell_size), width=1)
+                                                         self.top + (self.cell_size * j),
+                                                         self.cell_size, self.cell_size), width=1)
                 if self.board[i][j] == 1:
                     box.draw(screen)
 
@@ -128,12 +128,16 @@ class Bomberman(pygame.sprite.Sprite):
         if board.get_click([self.rect.x - self.size, self.rect.y]) == 0:
             self.rect.x -= self.size
 
+    def position(self):
+        pass
+
 
 class Bomb(pygame.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(group)
+        self.size = board.get_info()[2]
         self.image = load_image('bomb.png')
-        self.image = pygame.transform.scale(self.image, (38, 38))
+        self.image = pygame.transform.scale(self.image, (self.size, self.size))
         self.rect = self.image.get_rect()
         self.rect.x = 10
         self.rect.y = 10
@@ -161,20 +165,15 @@ if __name__ == '__main__':
     bomberman = pygame.sprite.Group()
     bomberman.add(sprite1)
 
-    sprite2 = Box()
     box = pygame.sprite.Group()
-    box.add(sprite2)
-
-    sprite3 = Bomb()
     bomb = pygame.sprite.Group()
-    bomb.add(sprite3)
     while running:
         tick = clock.tick()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                print(board.get_cell(event.pos))
+                pass
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     sprite1.left()
@@ -193,7 +192,11 @@ if __name__ == '__main__':
                 if event.key == pygame.K_d:
                     sprite1.right()
                 if event.key == pygame.K_SPACE:
-                    pass
+                    sprite3 = Bomb()
+
+                    bomb.add(sprite3)
+                    bomb.draw(screen)
+                    bomb.empty()
         screen.fill("skyblue")
         bomberman.draw(screen)
         board.render(screen)
