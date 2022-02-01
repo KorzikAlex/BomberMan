@@ -1,6 +1,8 @@
 import pygame
 import os
 import sys
+import random
+from pprint import pprint
 
 
 def load_image(name, colorkey=None):
@@ -53,6 +55,20 @@ class Board:
                         sprite2 = Box()
                         sprite2.change_xy(self.left + (self.cell_size * i), self.top + (self.cell_size * j))
                         box.add(sprite2)
+            last = 0
+            not_cords = [(1, 1), (1, 2), (2, 1), (3, 1), (1, 3)]
+            for _ in range(50):
+                cords = random.randrange(1, self.width - 1, 1), random.randrange(1, self.height - 1, 1)
+                while cords == last or cords in not_cords or self.board[cords[0]][cords[1]] != 0:
+                    cords = random.randrange(0, self.width, 1), random.randrange(0, self.height, 1)
+                self.board[cords[0]][cords[1]] = 2
+                last = cords
+            for i in range(self.height):
+                for j in range(self.width):
+                    if self.board[i][j] == 2:
+                        sprite2 = Wall()
+                        sprite2.change_xy(self.left + (self.cell_size * i), self.top + (self.cell_size * j))
+                        wall.add(sprite2)
             self.state = False
         for i in range(self.height):
             for j in range(self.width):
@@ -62,6 +78,8 @@ class Board:
                                                          self.cell_size, self.cell_size), width=1)
                 if self.board[i][j] == 1:
                     box.draw(screen)
+                if self.board[i][j] == 2:
+                    wall.draw(screen)
 
     def on_click(self, cell_coords):
         if cell_coords is None:
@@ -85,13 +103,35 @@ class Board:
     def get_info(self):
         return self.left, self.top, self.cell_size, self.width, self.height
 
+    def state_of_sell(self, cords):
+        return self.board[cords[0]][cords[1]]
+
+    def change_state_cell(self, cords, state):
+        self.board[cords[0]][cords[1]] = state
+
 
 class Box(pygame.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(group)
         self.image = load_image("box.png")
+        self.size = board.get_info()[2]
+        self.image = pygame.transform.scale(self.image, (self.size, self.size))
         self.rect = self.image.get_rect()
-        self.image = pygame.transform.scale(self.image, (38, 38))
+
+    def update(self, *args, **kwargs):
+        pass
+
+    def change_xy(self, x, y):
+        self.rect.x = x
+        self.rect.y = y
+
+
+class Wall(pygame.sprite.Sprite):
+    def __init__(self, *group):
+        super().__init__(group)
+        self.image = load_image("wall.png")
+        self.size = board.get_info()[2]
+        self.image = pygame.transform.scale(self.image, (self.size, self.size))
         self.rect = self.image.get_rect()
 
     def update(self, *args, **kwargs):
@@ -106,6 +146,7 @@ class Bomberman(pygame.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(group)
         self.size = board.get_info()[2]
+        self.speed = 15
         self.image = load_image("bomberman.png")
         self.image = pygame.transform.scale(self.image, (self.size, self.size))
         self.rect = self.image.get_rect()
@@ -129,7 +170,7 @@ class Bomberman(pygame.sprite.Sprite):
             self.rect.x -= self.size
 
     def position(self):
-        pass
+        return self.rect.x, self.rect.y
 
 
 class Bomb(pygame.sprite.Sprite):
@@ -139,24 +180,47 @@ class Bomb(pygame.sprite.Sprite):
         self.image = load_image('bomb.png')
         self.image = pygame.transform.scale(self.image, (self.size, self.size))
         self.rect = self.image.get_rect()
-        self.rect.x = 10
-        self.rect.y = 10
 
     def change(self, x, y):
         self.rect.x = x
         self.rect.y = y
 
+    def boom(self):
+        cell1 = board.get_cell((self.rect.x + self.size, self.rect.y))
+        cell2 = board.get_cell((self.rect.x - self.size, self.rect.y))
+        cell3 = board.get_cell((self.rect.x, self.rect.y + self.size))
+        cell4 = board.get_cell((self.rect.x, self.rect.y - self.size))
+        for sprite in wall:
+            if self.rect.x + self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
+                    and board.state_of_sell(cell1) == 2:
+                board.change_state_cell(cell1, 0)
+                sprite.kill()
+            elif self.rect.x - self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
+                    and board.state_of_sell(cell2) == 2:
+                board.change_state_cell(cell2, 0)
+                sprite.kill()
+            elif self.rect.x == sprite.rect.x and self.rect.y + self.size == sprite.rect.y \
+                    and board.state_of_sell(cell3) == 2:
+                board.change_state_cell(cell3, 0)
+                sprite.kill()
+            elif self.rect.x == sprite.rect.x and self.rect.y - self.size == sprite.rect.y \
+                    and board.state_of_sell(cell4) == 2:
+                board.change_state_cell(cell4, 0)
+                sprite.kill()
+
 
 if __name__ == '__main__':
     pygame.init()
     size = 750, 750
+    MYEVENTTYPE = pygame.USEREVENT + 1
+
     screen = pygame.display.set_mode(size)
-    pygame.display.set_caption('BOMBERMAN v 0.1')
+    pygame.display.set_caption('BOMBERMAN v 0.5')
     pygame.display.set_icon(pygame.image.load('data/bomb.png'))
-    # Ммм... Яндекс, thank you за то, что вместо встроенного нормального метода используешь свой 'забор'👍
     screen.fill("SKYBLUE")
 
     running = True
+    drawing = True
     clock = pygame.time.Clock()
 
     board = Board(19, 19)
@@ -166,6 +230,7 @@ if __name__ == '__main__':
     bomberman.add(sprite1)
 
     box = pygame.sprite.Group()
+    wall = pygame.sprite.Group()
     bomb = pygame.sprite.Group()
     while running:
         tick = clock.tick()
@@ -192,13 +257,23 @@ if __name__ == '__main__':
                 if event.key == pygame.K_d:
                     sprite1.right()
                 if event.key == pygame.K_SPACE:
-                    sprite3 = Bomb()
-
-                    bomb.add(sprite3)
-                    bomb.draw(screen)
-                    bomb.empty()
+                    if drawing:
+                        sprite3 = Bomb()
+                        sprite3.change(sprite1.position()[0], sprite1.position()[1])
+                        cord = board.get_cell((sprite1.position()[0], sprite1.position()[1]))
+                        board.change_state_cell(cord, 3)
+                        bomb.add(sprite3)
+                        pygame.time.set_timer(MYEVENTTYPE, 4000)
+                        drawing = False
+            if event.type == MYEVENTTYPE:
+                sprite3.boom()
+                bomb.empty()
+                board.change_state_cell(cord, 0)
+                pygame.time.set_timer(MYEVENTTYPE, 0)
+                drawing = True
         screen.fill("skyblue")
         bomberman.draw(screen)
+        bomb.draw(screen)
         board.render(screen)
         pygame.display.flip()
     pygame.quit()
