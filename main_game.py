@@ -21,6 +21,7 @@ def load_image(name, colorkey=None):
 
 
 class Board:
+    # класс игрового поля
     def __init__(self, width, height):
         self.width = width
         self.height = height
@@ -37,6 +38,7 @@ class Board:
         self.cell_size = cell_size
 
     def render(self, screen):
+        # раставление неразрушаемых стен
         if self.state:
             for i in range(self.height):
                 for j in range(self.width):
@@ -54,20 +56,19 @@ class Board:
                         sprite2 = Box()
                         sprite2.change_xy(self.left + (self.cell_size * i), self.top + (self.cell_size * j))
                         box.add(sprite2)
-            last = 0
+
+            # раставление разрушаемых стен
+            last_result = 0
             not_cords = [(1, 1), (1, 2), (2, 1), (3, 1), (1, 3)]
-
-            a = []
-
-            for _ in range(5):
+            cords_walls = []
+            for _ in range(50):
                 cords = random.randrange(1, self.width - 1, 1), random.randrange(1, self.height - 1, 1)
-                while cords == last or cords in not_cords or self.board[cords[0]][cords[1]] != 0:
+                while cords == last_result or cords in not_cords or self.board[cords[0]][cords[1]] != 0:
                     cords = random.randrange(0, self.width, 1), random.randrange(0, self.height, 1)
                 self.board[cords[0]][cords[1]] = 2
-                last = cords
-
-                a.append(cords)
-            cord_door = random.choice(a)
+                last_result = cords
+                cords_walls.append(cords)
+            cord_door = random.choice(cords_walls)
             self.board[cord_door[0]][cord_door[1]] = 4
 
             for i in range(self.height):
@@ -81,28 +82,29 @@ class Board:
                         sprite2 = Wall()
                         sprite2.change_xy(self.left + (self.cell_size * i), self.top + (self.cell_size * j))
                         wall.add(sprite2)
-
             self.state = False
+
+        # окончательный рендер игры
         for i in range(self.height):
             for j in range(self.width):
                 if self.board[i][j] == 0:
                     pygame.draw.rect(screen, "skyblue", (self.left + (self.cell_size * i),
                                                          self.top + (self.cell_size * j),
                                                          self.cell_size, self.cell_size), width=1)
+
                 if self.board[i][j] == 1:
                     box.draw(screen)
 
                 if self.board[i][j] == 2 or self.board[i][j] == 4:
                     wall.draw(screen)
+
                 if self.board[i][j] == 5:
                     door.draw(screen)
-                if self.board[i][j] == 2:
-                    wall.draw(screen)
 
-    def on_click(self, cell_coords):
-        if cell_coords is None:
+    def on_click(self, cell_cords):
+        if cell_cords is None:
             return None
-        x, y = cell_coords
+        x, y = cell_cords
         return self.board[x][y]
 
     def get_cell(self, mouse_pos):
@@ -128,39 +130,8 @@ class Board:
         self.board[cords[0]][cords[1]] = state
 
 
-class Box(pygame.sprite.Sprite):
-    def __init__(self, *group):
-        super().__init__(group)
-        self.image = load_image("box.png")
-        self.size = board.get_info()[2]
-        self.image = pygame.transform.scale(self.image, (self.size, self.size))
-        self.rect = self.image.get_rect()
-
-    def update(self, *args, **kwargs):
-        pass
-
-    def change_xy(self, x, y):
-        self.rect.x = x
-        self.rect.y = y
-
-
-class Wall(pygame.sprite.Sprite):
-    def __init__(self, *group):
-        super().__init__(group)
-        self.image = load_image("wall.png")
-        self.size = board.get_info()[2]
-        self.image = pygame.transform.scale(self.image, (self.size, self.size))
-        self.rect = self.image.get_rect()
-
-    def update(self, *args, **kwargs):
-        pass
-
-    def change_xy(self, x, y):
-        self.rect.x = x
-        self.rect.y = y
-
-
 class Bomberman(pygame.sprite.Sprite):
+    # класс главного героя - Bomberman
     def __init__(self, *group):
         super().__init__(group)
         self.size = board.get_info()[2]
@@ -176,7 +147,7 @@ class Bomberman(pygame.sprite.Sprite):
         if board.get_click([self.rect.x, self.rect.y - self.size]) == 0:
             self.rect.y -= self.size
         elif board.get_click([self.rect.x, self.rect.y - self.size]) == 5:
-            text_message = 'ВЫ ПОБЕДИЛИ!!!'
+            text_message = 'ВЫ ПОБЕДИЛИ!!! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧'
             running = False
 
     def down(self):
@@ -184,7 +155,7 @@ class Bomberman(pygame.sprite.Sprite):
         if board.get_click([self.rect.x, self.rect.y + self.size]) == 0:
             self.rect.y += self.size
         elif board.get_click([self.rect.x, self.rect.y + self.size]) == 5:
-            text_message = 'ВЫ ПОБЕДИЛИ!!!'
+            text_message = 'ВЫ ПОБЕДИЛИ!!! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧'
             running = False
 
     def right(self):
@@ -192,7 +163,7 @@ class Bomberman(pygame.sprite.Sprite):
         if board.get_click([self.rect.x + self.size, self.rect.y]) == 0:
             self.rect.x += self.size
         elif board.get_click([self.rect.x + self.size, self.rect.y]) == 5:
-            text_message = 'ВЫ ПОБЕДИЛИ!!!'
+            text_message = 'ВЫ ПОБЕДИЛИ!!! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧'
             running = False
 
     def left(self):
@@ -200,7 +171,9 @@ class Bomberman(pygame.sprite.Sprite):
         if board.get_click([self.rect.x - self.size, self.rect.y]) == 0:
             self.rect.x -= self.size
         elif board.get_click([self.rect.x - self.size, self.rect.y]) == 5:
-            text_message = 'ВЫ ПОБЕДИЛИ!!!'
+            text_message = 'ВЫ ПОБЕДИЛИ!!! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧'
+            pygame.time.set_timer(BOMB_TIMER, 0)
+            pygame.time.set_timer(TIMER, 0)
             running = False
 
     def position(self):
@@ -208,6 +181,7 @@ class Bomberman(pygame.sprite.Sprite):
 
 
 class Bomb(pygame.sprite.Sprite):
+    # класс бомб
     def __init__(self, *group):
         super().__init__(group)
         self.size = board.get_info()[2]
@@ -231,10 +205,10 @@ class Bomb(pygame.sprite.Sprite):
                 sprite.kill()
             elif self.rect.x + self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
                     and board.state_of_sell(cell1) == 4:
-                board.change_state_cell(cell4, 5)
+                board.change_state_cell(cell1, 5)
                 sprite4 = Door()
                 sprite4.change(sprite.rect.x, sprite.rect.y)
-                wall.add(sprite4)
+                door.add(sprite4)
                 sprite.kill()
             elif self.rect.x - self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
                     and board.state_of_sell(cell2) == 2:
@@ -242,10 +216,10 @@ class Bomb(pygame.sprite.Sprite):
                 sprite.kill()
             elif self.rect.x - self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
                     and board.state_of_sell(cell2) == 4:
-                board.change_state_cell(cell4, 5)
+                board.change_state_cell(cell2, 5)
                 sprite4 = Door()
                 sprite4.change(sprite.rect.x, sprite.rect.y)
-                wall.add(sprite4)
+                door.add(sprite4)
                 sprite.kill()
             elif self.rect.x == sprite.rect.x and self.rect.y + self.size == sprite.rect.y \
                     and board.state_of_sell(cell3) == 2:
@@ -256,7 +230,7 @@ class Bomb(pygame.sprite.Sprite):
                 board.change_state_cell(cell3, 5)
                 sprite4 = Door()
                 sprite4.change(sprite.rect.x, sprite.rect.y)
-                wall.add(sprite4)
+                door.add(sprite4)
                 sprite.kill()
             elif self.rect.x == sprite.rect.x and self.rect.y - self.size == sprite.rect.y \
                     and board.state_of_sell(cell4) == 2:
@@ -267,11 +241,43 @@ class Bomb(pygame.sprite.Sprite):
                 board.change_state_cell(cell4, 5)
                 sprite4 = Door()
                 sprite4.change(sprite.rect.x, sprite.rect.y)
-                wall.add(sprite4)
+                door.add(sprite4)
                 sprite.kill()
 
 
+class Box(pygame.sprite.Sprite):
+    # класс неразрушаемых стен
+    def __init__(self, *group):
+        super().__init__(group)
+        self.image = load_image("box.png")
+        self.size = board.get_info()[2]
+        self.image = pygame.transform.scale(self.image, (self.size, self.size))
+        self.rect = self.image.get_rect()
+
+    def update(self, *args, **kwargs):
+        pass
+
+    def change_xy(self, x, y):
+        self.rect.x = x
+        self.rect.y = y
+
+
+class Wall(pygame.sprite.Sprite):
+    # класс разрушаемых стен
+    def __init__(self, *group):
+        super().__init__(group)
+        self.image = load_image("wall.png")
+        self.size = board.get_info()[2]
+        self.image = pygame.transform.scale(self.image, (self.size, self.size))
+        self.rect = self.image.get_rect()
+
+    def change_xy(self, x, y):
+        self.rect.x = x
+        self.rect.y = y
+
+
 class Door(pygame.sprite.Sprite):
+    # класс дверей
     def __init__(self, *group):
         super().__init__(group)
         self.size = board.get_info()[2]
@@ -283,33 +289,17 @@ class Door(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-    def boom(self):
-        cell1 = board.get_cell((self.rect.x + self.size, self.rect.y))
-        cell2 = board.get_cell((self.rect.x - self.size, self.rect.y))
-        cell3 = board.get_cell((self.rect.x, self.rect.y + self.size))
-        cell4 = board.get_cell((self.rect.x, self.rect.y - self.size))
-        for sprite in wall:
-            if self.rect.x + self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
-                    and board.state_of_sell(cell1) == 2:
-                board.change_state_cell(cell1, 0)
-                sprite.kill()
-            elif self.rect.x - self.size == sprite.rect.x and self.rect.y == sprite.rect.y \
-                    and board.state_of_sell(cell2) == 2:
-                board.change_state_cell(cell2, 0)
-                sprite.kill()
-            elif self.rect.x == sprite.rect.x and self.rect.y + self.size == sprite.rect.y \
-                    and board.state_of_sell(cell3) == 2:
-                board.change_state_cell(cell3, 0)
-                sprite.kill()
-            elif self.rect.x == sprite.rect.x and self.rect.y - self.size == sprite.rect.y \
-                    and board.state_of_sell(cell4) == 2:
-                board.change_state_cell(cell4, 0)
-                sprite.kill()
-
 
 if __name__ == '__main__':
     pygame.init()
     size = 750, 750
+
+    print("""
+ВАША ЗАДАЧА: НАЙТИ ДВЕРЬ
+ПЕРЕДВИЖЕНИЕ: W(↑) A(←) S(↓) D(→) ИЛИ СТРЕЛКИ
+БОМБА: SPACE ИЛИ ENTER
+ВРЕМЯ: 2:20 (200 секунд)
+УДАЧИ ВАМ (☞ﾟヮﾟ)☞""")
 
     BOMB_TIMER = pygame.USEREVENT + 1
     TIMER = pygame.USEREVENT + 2
@@ -335,13 +325,16 @@ if __name__ == '__main__':
     bomb = pygame.sprite.Group()
     door = pygame.sprite.Group()
     text_message = ''
+
     while running:
-        tick = clock.tick()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                text_message = "\nИГРА ЗАВЕРШЕНА ДОСРОЧНО"
                 running = False
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pass
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     sprite1.left()
@@ -351,6 +344,7 @@ if __name__ == '__main__':
                     sprite1.down()
                 if event.key == pygame.K_RIGHT:
                     sprite1.right()
+
                 if event.key == pygame.K_w:
                     sprite1.up()
                 if event.key == pygame.K_a:
@@ -359,6 +353,7 @@ if __name__ == '__main__':
                     sprite1.down()
                 if event.key == pygame.K_d:
                     sprite1.right()
+
                 if event.key == pygame.K_SPACE:
                     if drawing:
                         sprite3 = Bomb()
@@ -368,19 +363,40 @@ if __name__ == '__main__':
                         bomb.add(sprite3)
                         pygame.time.set_timer(BOMB_TIMER, 4000)
                         drawing = False
+
+                if event.key == pygame.K_RETURN:
+                    if drawing:
+                        sprite3 = Bomb()
+                        sprite3.change(sprite1.position()[0], sprite1.position()[1])
+                        cord = board.get_cell((sprite1.position()[0], sprite1.position()[1]))
+                        board.change_state_cell(cord, 3)
+                        bomb.add(sprite3)
+                        pygame.time.set_timer(BOMB_TIMER, 4000)
+                        drawing = False
+
             if event.type == BOMB_TIMER:
                 sprite3.boom()
                 bomb.empty()
                 board.change_state_cell(cord, 0)
                 pygame.time.set_timer(BOMB_TIMER, 0)
                 drawing = True
+
             if event.type == TIMER:
-                text_message = 'ВРЕМЯ ВЫШЛО :('
+                text_message = 'ВРЕМЯ ВЫШЛО .·´¯`(>▂<)´¯`·. '
+                pygame.time.set_timer(TIMER, 0)
+                pygame.time.set_timer(BOMB_TIMER, 0)
                 running = False
+
         screen.fill("skyblue")
         bomberman.draw(screen)
         bomb.draw(screen)
         board.render(screen)
         pygame.display.flip()
     pygame.quit()
+
     print(text_message)
+    print("""
+СОЗДАТЕЛЬ: КОРШКОВ АЛЕКСАНДР АЛЕКСАНДРОВИЧ
+ЗАШИТА ПРОЕКТА PYGAME
+ЯНДЕКС.ЛИЦЕЙ
+2022""")
